@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>File Upload</title>
+    <style>
+      /* Set the background color of the page */
+      body {
+        background-color: #2f3136;
+        color: #dcddde;
+      }
+
+      /* Style the main header */
+      h1 {
+        font-size: 40px;
+        margin: 0;
+        padding: 20px 0 10px;
+        text-align: center;
+      }
+
+      /* Style the subtext in the main header */
+      h1 span {
+        font-size: 20px;
+        display: block;
+        margin-top: 5px;
+      }
+
+      /* Style the form labels */
+      label {
+        display: block;
+        margin-top: 10px;
+      }
+
+      /* Style the form inputs */
+      input[type="number"],
+      input[type="text"],
+      textarea {
+        background-color: #40444b;
+        border: none;
+        border-radius: 3px;
+        color: #dcddde;
+        font-size: 16px;
+        padding: 10px;
+        margin-bottom: 10px;
+        width: 98%;
+      }
+
+      input[type="checkbox"] {
+        margin-top: 5px;
+      }
+
+      /* Style the form buttons */
+      button[type="button"] {
+        background-color: #7289da;
+        border: none;
+        border-radius: 3px;
+        color: #fff;
+        cursor: pointer;
+        font-size: 16px;
+        margin-top: 10px;
+        padding: 10px 20px;
+        transition: background-color 0.2s ease;
+      }
+
+      button[type="button"]:hover {
+        background-color: #677bc4;
+      }
+
+      /* Style the file upload form */
+      form:nth-of-type(2) label {
+        margin-top: 20px;
+      }
+
+      form:nth-of-type(2) input[type="file"] {
+        margin-top: 5px;
+      }
+
+      /* Style the output textarea */
+      textarea {
+        background-color: #40444b;
+        border: none;
+        border-radius: 3px;
+        color: #dcddde;
+        font-size: 16px;
+        height: 200px;
+        margin-bottom: 20px;
+        padding: 10px;
+        width: 98%;
+      }
+    </style>
+		
+		<link rel="stylesheet" href="https://tbf.username-pass.repl.co/disc.css">
+  </head>
+
+  <body>
+    <h1>
+      TBF
+      <!--(Tungsten Binary Format)-->
+      Editor
+    </h1>
+    <label for="dict">Dictionary id</label>
+    <input
+      type="number"
+      id="dict"
+      name="dict"
+      placeholder="dictionary id"
+      value="1"
+    />
+    <br />
+    <h3>Read File</h3>
+    <form>
+      <label for="file">Select a file:</label>
+      <input type="file" id="file" name="file" accept=".tbf" />
+      <button type="button" onclick="upload()">Decode</button>
+    </form>
+    <textarea id="output"></textarea>
+    <h3>Make a File</h3>
+    <form>
+      <label for="filename">Write your file name:</label>
+      <input
+        type="text"
+        id="filename"
+        name="filename"
+        placeholder="file name"
+      />
+      <br />
+      <label for="filedat">Write your file content:</label>
+      <textarea
+        type="text"
+        id="filedat"
+        name="filedat"
+        placeholder="file data"
+      ></textarea>
+      <br />
+      <label for="cryptic">Cryptic File Name</label>
+      <input type="checkbox" id="cryptic" name="cryptic" />
+      <br />
+      <button type="button" onclick="makeFile()">Make file</button>
+    </form>
+    <script>
+      			function binaryToHex(s) {
+          var i, k, part, accum, ret = '';
+          for (i = s.length-1; i >= 3; i -= 4) {
+              // extract out in substrings of 4 and convert to hex
+              part = s.substr(i+1-4, 4);
+              accum = 0;
+              for (k = 0; k < 4; k += 1) {
+                  if (part[k] !== '0' && part[k] !== '1') {
+                      // invalid character
+                      return { valid: false };
+                  }
+                  // compute the length 4 substring
+                  accum = accum * 2 + parseInt(part[k], 10);
+              }
+              if (accum >= 10) {
+                  // 'A' to 'F'
+                  ret = String.fromCharCode(accum - 10 + 'A'.charCodeAt(0)) + ret;
+              } else {
+                  // '0' to '9'
+                  ret = String(accum) + ret;
+              }
+          }
+          // remaining characters, i = 0, 1, or 2
+          if (i >= 0) {
+              accum = 0;
+              // convert from front
+              for (k = 0; k <= i; k += 1) {
+                  if (s[k] !== '0' && s[k] !== '1') {
+                      return { valid: false };
+                  }
+                  accum = accum * 2 + parseInt(s[k], 10);
+              }
+              // 3 bits, value cannot exceed 2^3 - 1 = 7, just convert
+              ret = String(accum) + ret;
+          }
+          return { valid: true, result: ret };
+      }
+      			function hexToBinary(s) {
+      			    var i, k, part, ret = '';
+      			    // lookup table for easier conversion. '0' characters are padded for '1' to '7'
+      			    var lookupTable = {
+      			        '0': '0000', '1': '0001', '2': '0010', '3': '0011', '4': '0100',
+      			        '5': '0101', '6': '0110', '7': '0111', '8': '1000', '9': '1001',
+      			        'a': '1010', 'b': '1011', 'c': '1100', 'd': '1101',
+      			        'e': '1110', 'f': '1111',
+      			        'A': '1010', 'B': '1011', 'C': '1100', 'D': '1101',
+      			        'E': '1110', 'F': '1111'
+      			    };
+      			    for (i = 0; i < s.length; i += 1) {
+      			        if (lookupTable.hasOwnProperty(s[i])) {
+      			            ret += lookupTable[s[i]];
+      			        } else {
+      			            return { valid: false };
+      			        }
+      			    }
+      			    return { valid: true, result: ret };
+      			}
+
+
+
+      			function download(binaryData, fileName) {
+      				let hexDat = binaryToHex(binaryData).result;
+      				let returnbin = hexToBinary(hexDat).result;
+      				console.log({binaryData,length:binaryData.length,hexDat,issame:returnbin == binaryData,returnbin});
+      			 const binaryArray = new Uint8Array(hexDat.length);
+      				for (let i = 0; i < hexDat.length; i++) {
+      					binaryArray[i] = parseInt(hexDat.substr(i,1), 16);
+      				}
+      				const blob = new Blob([binaryArray]);
+      				const url = URL.createObjectURL(blob);
+      				console.log(url);
+      				const link = document.createElement("a");
+      				link.href = url;
+      				link.download = fileName;
+      				document.body.appendChild(link);
+      				link.click();
+      				document.body.removeChild(link);
+      				URL.revokeObjectURL(url);
+      			}
+      			async function upload() {
+      				const fileInput = document.getElementById("file");
+							document.getElementById("output").value = '';
+      				const file = fileInput.files[0];
+      				let fileData = await readFileContents(file);//await readFileContents(file);
+							
+      				console.log({fileData})
+							fileData = hexToBinary(fileData).result;
+      				const result = await decode(file.name, fileData);
+      				document.getElementById("output").value = result;
+      			}
+      			async function readHexFile(file) {
+      				const fileReader = new FileReader();
+      				const fileData = await new Promise((resolve, reject) => {
+      				fileReader.onerror = () => {
+      				fileReader.abort();
+      				reject(new Error("An error occurred while reading the file."));
+      				};
+      				fileReader.onload = () => {
+      					resolve(fileReader.result);
+      				};
+      				fileReader.readAsArrayBuffer(file);
+      				});
+							console.log(fileData);
+
+      				// convert hex string to array
+      				const array = fileData.map(s => parseInt(s, 16));
+
+      				return array;
+
+      			}
+            function makeFile() {
+              const dict = document.getElementById("dict").value;
+              const filename = document.getElementById("filename").value;
+              const filedata = document.getElementById("filedat").value;
+              const cryptic = !document.getElementById("cryptic").checked;
+              fetch("https://tbf.username-pass.repl.co/makefile", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  filename,
+                  filedata,
+                  cryptic,
+                  dict,
+                }),
+              })
+                .then((response) => response.json())
+                .then((responseData) => {
+                  console.log(responseData);
+                  download(responseData.data, responseData.name);
+                  //log the response data to the console
+                })
+                .catch((error) => {
+                  console.error("Error sending data:", error.toString());
+                });
+              //window.location.replace(`/makefile/${filename}/${content}/${cryptic}`);
+            }
+            async function readFileContents(file) {
+              return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const binaryData = new Uint8Array(reader.result);
+                  const binaryString = Array.from(binaryData)
+                    .map((byte) => byte.toString(16)) //.padStart(8, '0'))
+                    .join("")
+										.toUpperCase();
+									
+                  resolve(binaryString);
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+              });
+            }
+
+            async function decode(filename, filedata) {
+              console.log({filename, filedata});
+              const dict = document.getElementById("dict").value;
+
+              const response = await fetch(
+                "https://tbf.username-pass.repl.co/decode",
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    filename,
+                    filedata,
+                    dict,
+                  }),
+                }
+              );
+              return await response.text();
+            }
+    </script>
+  </body>
+</html>

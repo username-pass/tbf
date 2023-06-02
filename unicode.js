@@ -1,5 +1,5 @@
 //format: "key": ["keycode","keyname"]
-const data = {
+const data = { 
   "\n": ["10", "NEW LINE"],
   " ": ["032", "SPACE"],
   "!": ["033", "EXCLAMATION MARK = factorial = bang"],
